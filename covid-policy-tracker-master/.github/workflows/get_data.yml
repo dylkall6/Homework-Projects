@@ -1,0 +1,28 @@
+name: Data link to OxCGRT
+on:
+  schedule:
+    - cron: '*/60 * * * *'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 1
+      - name: Download raw csv from OxCGRT database
+        run: |
+          curl 'https://oxcgrtportal.azurewebsites.net/api/CSVDownload?type=Compressed' -s -f -o 'data/OxCGRT_latest.csv'
+          curl 'https://oxcgrtportal.azurewebsites.net/api/CSVDownload' -s -f -o 'data/OxCGRT_latest_withnotes.csv'
+          curl 'https://oxcgrtportal.azurewebsites.net/api/CSVDownload?type=changes_all' -s -f -o 'data/OxCGRT_latest_allchanges.csv'
+          curl 'https://oxcgrtportal.azurewebsites.net/api/CSVDownload?type=changes_responses' -s -f -o 'data/OxCGRT_latest_responses.csv'
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Pull latest OxCGRT data" -a
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
